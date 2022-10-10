@@ -1,48 +1,52 @@
+from time import time
 import numpy as np
 
-def discretized_operator(a, b, c, size, h, boundary_conditions="Dirichlet"):
+def discretized_operator(sigma, r, h, size):
     '''
-    a -> coefficient of the second derivative in the PDE
-    b -> coefficient of the first derivative in the PDE
-    c -> coefficient of the zero-th derivative in the PDE
-    size -> size of the space discretization grid
-    h -> space discretization step
+    sigma -> volatility
+    r -> rate
+    h -> price discretization step
+    size -> discretization matrix size
     '''
-    alpha = a / (h * h) + b / (2 * h)
-    beta = - 2 * a / (h * h) - c
-    gamma = a / (h * h) + b / (2 * h)
+    alpha = sigma * sigma / (2 * h * h) - (r - sigma*sigma / 2) / (2*h)
+    beta = - sigma * sigma / (h * h) - r
+    gamma = sigma * sigma / (2 * h * h) + (r - sigma*sigma / 2) / (2*h)
     sub_diagonal = np.diag(np.repeat(alpha, size - 1), -1) 
     diagonal = np.diag(np.repeat(beta, size), 0)
-    super_diagonal = np.diag(np.repeat(gamma, size - 1), 1) 
+    super_diagonal = np.diag(np.repeat(gamma, size - 1), 1)
+    # diagonal[0,0] += alpha
+    # diagonal[-1,-1] += gamma
     return sub_diagonal + diagonal + super_diagonal
     
-def solve(time_grid_size, time_step, final_condition, operator, theta=0):
+def solve(time_grid_size, time_step, final_condition, operator):
     '''
     time_grid_size -> time discretization grid size
     time_step -> time discretization grid step
+    final_condition -> vector of option premium
+    operator -> differential operator discretized matrix
     '''
-    u = final_condition
-    for n in reversed(range(time_grid_size)):
-        u = solve_time_step(u, operator, time_step, theta)
+    mat = np.identity(operator.shape[0]) + time_step * operator
+    u = np.linalg.matrix_power(mat, time_grid_size).dot(final_condition)
 
     return u
 
-def solve_time_step(u, operator, time_step, theta=0):
-    return (np.identity(operator.size) + time_step * operator).dot(u)
-
 def main():
-    sigma = 0.1
+    sigma = 0.4
     rate = 0.05
-    boundary = 10
-    size = 50
-    h = boundary / (size + 1)
-    time_grid_size = 100
-    maturity = 10
+    maturity = 1
     strike = 1
-    a = sigma * sigma / 2
-    b = rate - sigma * sigma / 2
-    c = - rate
-    x = - boundary + [2*n*h for n in range(size + 1)]
-    put_payoff = np.maximum(strike - np.exp(x), 0)
-    A = discretized_operator(a, b, c, size, h)
-    price = solve(time_grid_size, maturity / time_grid_size, put_payoff)
+    boundary = 5
+
+    size = 499
+    h = 2 * boundary / (size + 1)
+    time_grid_size = 100000
+    k = maturity / time_grid_size
+    print(k/(h*h))
+    x = [- boundary + 2*n*boundary / (size + 1) for n in range(size + 2)]
+    put_payoff = np.maximum(np.exp(x) - strike, 0)
+    A = discretized_operator(sigma, rate, h, len(x))
+    price = solve(time_grid_size, k, put_payoff, A)
+    return x, price
+
+x, price = main()
+print(price[250])
