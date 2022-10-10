@@ -100,3 +100,11 @@ def LSMPrice(r, sigma, t, K, S, sampleSize, timeSteps):
 
 if __name__=="__main__":
     print(LSMPrice(r=0.06, sigma=0.1, t=3, K=1.1, S=1, sampleSize=8, timeSteps=4))
+
+r = 0.05
+sigma = 0.1
+T = 1
+K = 1
+S = 1
+price = MontecarloCall(10000, r, sigma, T, K, S)
+print(price)

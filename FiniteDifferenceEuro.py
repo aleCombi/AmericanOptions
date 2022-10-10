@@ -1,16 +1,15 @@
-from time import time
 import numpy as np
 
-def discretized_operator(sigma, r, h, size):
+def discretized_operator(a, b, c, h, size):
     '''
     sigma -> volatility
     r -> rate
     h -> price discretization step
     size -> discretization matrix size
     '''
-    alpha = sigma * sigma / (2 * h * h) - (r - sigma*sigma / 2) / (2*h)
-    beta = - sigma * sigma / (h * h) - r
-    gamma = sigma * sigma / (2 * h * h) + (r - sigma*sigma / 2) / (2*h)
+    alpha = a / (h * h) - b / (2*h)
+    beta = - 2 * a / (h * h) + c
+    gamma = a / (h * h) + b / (2*h)
     sub_diagonal = np.diag(np.repeat(alpha, size - 1), -1) 
     diagonal = np.diag(np.repeat(beta, size), 0)
     super_diagonal = np.diag(np.repeat(gamma, size - 1), 1)
@@ -44,7 +43,10 @@ def main():
     print(k/(h*h))
     x = [- boundary + 2*n*boundary / (size + 1) for n in range(size + 2)]
     put_payoff = np.maximum(np.exp(x) - strike, 0)
-    A = discretized_operator(sigma, rate, h, len(x))
+    a = sigma * sigma / 2
+    b = rate - sigma*sigma / 2
+    c = - rate
+    A = discretized_operator(a, b, c, h, len(x))
     price = solve(time_grid_size, k, put_payoff, A)
     return x, price
 
