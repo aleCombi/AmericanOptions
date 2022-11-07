@@ -11,9 +11,9 @@ def CallDelta(r, sigma, t, K, S):
     d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * t ) / (sigma * np.sqrt(t))
     return norm.cdf(d1)
 
-def Put(r, sigma, T, K, S, t = 0):
+def Put(r, sigma, t, K, S):
     d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * t ) / (sigma * np.sqrt(t))
-    d2 = d1 - sigma * np.sqrt(T - t)  
+    d2 = d1 - sigma * np.sqrt(t)  
     return  - norm.cdf(- d1) * S +  norm.cdf(- d2) * K * np.exp(- r * t)
 
 def PutDelta(r, sigma, t, K, S):
@@ -25,13 +25,22 @@ def MontecarloCall(sampleSize, r, sigma, T, K, S):
     payoffs = np.maximum(0, valuesAtMaturity - K) 
     return np.exp(- r * T) * np.average(payoffs)
 
-def SimulateGBMPaths(T, S, r, sigma, sampleSize, timeSteps):
+def SimulateGBMPaths(T, S, r, sigma, sampleSize, timeSteps, antithetic=False):
     logPathGrid = np.zeros([timeSteps, sampleSize])
-    driftTerm = (r - sigma**2 / 2) * T / timeSteps
-    volTerm = sigma * np.sqrt(T / timeSteps) * np.random.normal(0,1, [timeSteps, sampleSize])
+    dt = T / timeSteps
+    driftTerm = (r - sigma**2 / 2) * dt
+    volTerm = sigma * np.sqrt(dt) * np.random.normal(0,1, [timeSteps, sampleSize])
+    
+    for time in range(timeSteps - 1):
+        logPathGrid[time + 1, :] = logPathGrid[time, :] + driftTerm + volTerm[time, :]
 
-    for time in range(1, timeSteps):
-        logPathGrid[time, :] = logPathGrid[time - 1, :] + driftTerm + volTerm[time, :]
+    if (antithetic):
+        antithetic_logPathGrid = np.zeros([timeSteps, sampleSize])
+        for time in range(timeSteps - 1):
+            antithetic_logPathGrid[time + 1, :] = antithetic_logPathGrid[time, :] + driftTerm - volTerm[time, :]
+        logPathGrid = np.block([logPathGrid,antithetic_logPathGrid])
+
+
     return S * np.exp(logPathGrid)
 
 def SimulateGBM(time, price, rate, sigma, sampleSize):
