@@ -1,5 +1,6 @@
 import LSM
 import numpy as np
+import BlackScholes as bs
 
 lsm_from_longstaff_paper = 0.1144
 
@@ -7,6 +8,8 @@ def test_lsm():
     rate = 0.06
     strike = 1.1
     maturity = 1
+    spot = 1
+    sigma = 0.1
     spotGrid = np.ndarray((4,8))
     spotGrid[:, 0] = [1, 1.09, 1.08, 1.34]
     spotGrid[:, 1] = [1, 1.16, 1.26, 1.54]
@@ -20,5 +23,24 @@ def test_lsm():
     lsm = LSM.LongstaffSchwartz(None, option, 8)
     american_price = lsm.Price(spotGrid, rate, strike)
     print(np.abs(american_price - lsm_from_longstaff_paper) < .0001)
+    sample_size = 1000
+    time_steps = 100
+    paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size, time_steps)
+    lsm.Price(paths, rate, strike)
 
-test_lsm()
+def test_lsm_full():
+    rate = 0.06
+    strike = 40
+    maturity = 1
+    spot = 36
+    sigma = 0.2
+    option = LSM.AmericanPut(strike, maturity)
+    lsm = LSM.LongstaffSchwartz(None, option, 8)
+    bs_opt = bs.Put(rate, sigma, maturity, strike, spot)
+    sample_size = 100000
+    time_steps = 50
+    paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size//2, time_steps, True)
+    price = lsm.Price(paths, rate / (time_steps -1), strike)
+    print(price)
+
+test_lsm_full()
