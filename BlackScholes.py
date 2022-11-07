@@ -1,7 +1,8 @@
 import numpy as np
-from scipy.stats import norm
+import scipy.stats as stats
 from numpy.polynomial import polynomial
 
+norm = stats.norm
 def Call(r, sigma, t, K, S):
     d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * (t) ) / (sigma * np.sqrt(t))
     d2 = d1 - sigma * np.sqrt(t)  
