@@ -82,7 +82,3 @@ def main():
     option = VanillaOption(strike, maturity)
     price = fd.price(option, sigma, rate)
     print(price)
-
-
-# main()
-
