@@ -107,4 +107,4 @@ T = 1
 K = 1
 S = 1
 price = MontecarloCall(10000, r, sigma, T, K, S)
-print(price)
+# print(price)
