@@ -21,7 +21,7 @@ class AmericanPut:
         self.strike = strike
         self.maturity = maturity
 
-    def PutPayoff(self, strike, price):
+    def payoff(self, strike, price):
         return np.maximum(strike - price, 0)
 
 # class for Longstaff - Schwartz MonteCarlo method
@@ -45,23 +45,27 @@ class LongstaffSchwartz:
         times_length = spotGrid.shape[0]
         paths_length = spotGrid.shape[1]
         flows = np.zeros(spotGrid.shape)
-        flows[- 1, :] = np.maximum(strike - spotGrid[-1, :], 0)
+        flows[- 1, :] = self.option.payoff(strike, spotGrid[-1, :])
 
         for time in range(times_length - 2, 0, -1):      
             # realized cash flows in not excercising the option   
             noExPV = np.exp(-rate) * flows[time + 1, :] #correct for timestep not equal to 1
             noExPayoff = np.zeros(paths_length)
-            # LS regression among ITM spots to get noExcercise expectation 
-            ITMPaths = np.where(spotGrid[time, :] < strike)
+            # LS regression among ITM spots to get noExercise expectation 
+            ITMPaths = np.where(self.option.payoff(strike, spotGrid[time, :]) > 0)
+            if (len(ITMPaths[0]) == 0):
+                continue
+
             ITMSpots = spotGrid[time, ITMPaths].flatten()
             ITMNoExPV = noExPV[ITMPaths]
-            coefficients = polynomial.Polynomial.fit(ITMSpots, ITMNoExPV, 2).convert().coef
+            coefficients = polynomial.Polynomial.fit(ITMSpots, ITMNoExPV, 3).convert().coef
             fittingPol = np.poly1d(coefficients)
             noExPayoff[ITMPaths] = fittingPol(spotGrid[time,ITMPaths])
 
-            #never exercies OTM options!
+            #paths for which exercising is profitable
             exercise = np.where(np.maximum(strike - spotGrid[time, :], 0) > np.maximum(0, noExPayoff[:]))[0]
 
+            #update the flow matrix on the paths where it is profitable to exercise
             for path in exercise:
                 flows[time, path] = max(strike - spotGrid[time, path], 0)
                 flows[time + 1 :, path] = 0
