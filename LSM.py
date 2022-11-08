@@ -49,7 +49,12 @@ class LongstaffSchwartz:
 
         for time in range(times_length - 2, 0, -1):      
             # realized cash flows in not excercising the option   
+            realized = np.zeros(flows.shape[1])
+            for path in range(paths_length):
+                realized[path] = np.sum([np.exp(-rate*(t - time))* flows[t, path] for t in range(time + 1, flows.shape[0])])
+
             noExPV = np.exp(-rate) * flows[time + 1, :] #correct for timestep not equal to 1
+            noExPV = realized
             noExPayoff = np.zeros(paths_length)
             # LS regression among ITM spots to get noExercise expectation 
             ITMPaths = np.where(self.option.payoff(strike, spotGrid[time, :]) > 0)
@@ -59,7 +64,7 @@ class LongstaffSchwartz:
             ITMSpots = spotGrid[time, ITMPaths].flatten()
             ITMNoExPV = noExPV[ITMPaths]
             coefficients = polynomial.Polynomial.fit(ITMSpots, ITMNoExPV, 3).convert().coef
-            fittingPol = np.poly1d(coefficients)
+            fittingPol = np.poly1d(coefficients[::-1])
             noExPayoff[ITMPaths] = fittingPol(spotGrid[time,ITMPaths])
 
             #paths for which exercising is profitable
@@ -73,6 +78,6 @@ class LongstaffSchwartz:
         # now we have the matrix of cashFlows flows[,] so we can compute the NPV
         discountedValue = np.zeros(flows.shape[1])
         for path in range(paths_length):
-            discountedValue[path] = np.sum([np.exp(-rate*time)* flows[time, path] for time in range(flows.shape[0])])
+            discountedValue[path] = np.sum([np.exp(-rate*t)* flows[t, path] for t in range(flows.shape[0])])
 
         return np.mean(discountedValue)
