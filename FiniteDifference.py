@@ -1,7 +1,4 @@
 import numpy as np
-import BlackScholes as bs
-import LSM
-import Payoffs as po
 
 class FiniteDifferenceBS():
     def __init__(self, boundary, time_grid_size, price_grid_size):

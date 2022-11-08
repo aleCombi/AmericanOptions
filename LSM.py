@@ -1,12 +1,10 @@
-from typing import no_type_check
 import numpy as np
 from numpy.polynomial import polynomial
 
 # class for Longstaff - Schwartz MonteCarlo method
 # for evaluation of American put options
 class LongstaffSchwartz:
-    def __init__(self, pathGenerator, americanPut, pathNumber, poly_fit_degree):
-        self.pathGenerator = pathGenerator
+    def __init__(self, poly_fit_degree):
         self.poly_fit_degree = poly_fit_degree
 
     def Poly_fit(self, x, y):

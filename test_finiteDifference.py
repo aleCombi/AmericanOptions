@@ -1,4 +1,4 @@
-from FiniteDifferenceEuro import FiniteDifferenceBS
+from FiniteDifference import FiniteDifferenceBS
 import BlackScholes as bs
 import numpy as np
 import Payoffs as po
