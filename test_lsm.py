@@ -22,7 +22,7 @@ def test_lsm():
     spotGrid[:, 6] = [1, 0.92, 0.84, 1.01]
     spotGrid[:, 7] = [1, 0.88, 1.22, 1.34]
     option = po.VanillaPut(strike, maturity, spot)
-    lsm = LSM.LongstaffSchwartz(None, option, 8, 2)
+    lsm = LSM.LongstaffSchwartz(2)
     american_price = lsm.Price(spotGrid, rate, option)
     assert np.abs(american_price - lsm_from_longstaff_paper) < .0001
 
@@ -42,7 +42,7 @@ def test_lsm_full():
 
 def lsm_single(spot, sigma, strike, maturity, rate, sample_size, time_steps, result):
     option = po.VanillaPut(strike, maturity, spot)
-    lsm = LSM.LongstaffSchwartz(None, option, 8, 4)
+    lsm = LSM.LongstaffSchwartz(4)
     sample_size = 100000
     time_steps = 51
     paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size, time_steps, True)
