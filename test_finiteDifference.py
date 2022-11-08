@@ -14,7 +14,7 @@ def test_FiniteDifferenceBS_instance(sigma, rate, strike):
     fd = FiniteDifferenceBS(boundary, time_grid_size, price_grid_size)
     option = VanillaOption(strike, maturity)
     price = fd.price(option, sigma, rate)
-    print(np.abs(price - price_bs) / price_bs < price_tolerance)
+    assert np.abs(price - price_bs) / price_bs < price_tolerance
 
 def test_FiniteDifferenceBS():
     sigma = [0.04*i for i in range(1, 10)]
@@ -25,4 +25,4 @@ def test_FiniteDifferenceBS():
         for strike in strikes:
             test_FiniteDifferenceBS_instance(vol, rate, strike)
 
-test_FiniteDifferenceBS()
+# test_FiniteDifferenceBS()

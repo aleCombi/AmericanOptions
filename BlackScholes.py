@@ -25,17 +25,20 @@ def MontecarloCall(sampleSize, r, sigma, T, K, S):
     payoffs = np.maximum(0, valuesAtMaturity - K) 
     return np.exp(- r * T) * np.average(payoffs)
 
-def SimulateGBMPaths(T, S, r, sigma, sampleSize, timeSteps, antithetic=False):
-    logPathGrid = np.zeros([timeSteps, sampleSize])
+def SimulateGBMPaths(T, S, r, sigma, sample_size, timeSteps, antithetic=False):
+    if antithetic:
+        sample_size = sample_size // 2
+        
+    logPathGrid = np.zeros([timeSteps, sample_size])
     dt = T / timeSteps
     driftTerm = (r - sigma**2 / 2) * dt
-    volTerm = sigma * np.sqrt(dt) * np.random.normal(0,1, [timeSteps, sampleSize])
+    volTerm = sigma * np.sqrt(dt) * np.random.normal(0,1, [timeSteps, sample_size])
     
     for time in range(timeSteps - 1):
         logPathGrid[time + 1, :] = logPathGrid[time, :] + driftTerm + volTerm[time, :]
 
     if (antithetic):
-        antithetic_logPathGrid = np.zeros([timeSteps, sampleSize])
+        antithetic_logPathGrid = np.zeros([timeSteps, sample_size])
         for time in range(timeSteps - 1):
             antithetic_logPathGrid[time + 1, :] = antithetic_logPathGrid[time, :] + driftTerm - volTerm[time, :]
         logPathGrid = np.block([logPathGrid,antithetic_logPathGrid])
