@@ -44,40 +44,26 @@ class LongstaffSchwartz:
     def Price(self, spotGrid, rate, strike):
         times_length = spotGrid.shape[0]
         paths_length = spotGrid.shape[1]
-        flows = np.zeros(spotGrid.shape)
-        flows[- 1, :] = self.option.payoff(strike, spotGrid[-1, :])
+        stopping_time = (times_length - 1) * np.ones(paths_length)
+        stopping_payoff = lambda path: self.option.payoff(strike, spotGrid[stopping_time[path].astype(int), path])
 
         for time in range(times_length - 2, 0, -1):      
             # realized cash flows in not excercising the option   
-            realized = np.zeros(flows.shape[1])
-            for path in range(paths_length):
-                realized[path] = np.sum([np.exp(-rate*(t - time))* flows[t, path] for t in range(time + 1, flows.shape[0])])
+            continuation_PV = np.exp(-rate*(stopping_time - time)) * stopping_payoff(np.arange(paths_length))
 
-            noExPV = np.exp(-rate) * flows[time + 1, :] #correct for timestep not equal to 1
-            noExPV = realized
-            noExPayoff = np.zeros(paths_length)
-            # LS regression among ITM spots to get noExercise expectation 
-            ITMPaths = np.where(self.option.payoff(strike, spotGrid[time, :]) > 0)
-            if (len(ITMPaths[0]) == 0):
-                continue
+            # LS regression among ITM spots to get continuation conditional expectation 
+            ITM_paths = np.where(self.option.payoff(strike, spotGrid[time, :]) > 0)
+            ITM_spots = spotGrid[time, ITM_paths].flatten()
+            ITM_continuation_payoff = continuation_PV[ITM_paths]
+            coefficients = polynomial.Polynomial.fit(ITM_spots, ITM_continuation_payoff, 3).convert().coef
+            fitting_poly = np.poly1d(coefficients[::-1])
+            continuation_exp = np.zeros(paths_length)
+            continuation_exp[ITM_paths] = fitting_poly(spotGrid[time,ITM_paths])
 
-            ITMSpots = spotGrid[time, ITMPaths].flatten()
-            ITMNoExPV = noExPV[ITMPaths]
-            coefficients = polynomial.Polynomial.fit(ITMSpots, ITMNoExPV, 3).convert().coef
-            fittingPol = np.poly1d(coefficients[::-1])
-            noExPayoff[ITMPaths] = fittingPol(spotGrid[time,ITMPaths])
+            # updating the stopping time choice
+            exercise = np.where(self.option.payoff(strike, spotGrid[time, :]) > continuation_exp)[0]
+            stopping_time[exercise] = time
 
-            #paths for which exercising is profitable
-            exercise = np.where(np.maximum(strike - spotGrid[time, :], 0) > np.maximum(0, noExPayoff[:]))[0]
-
-            #update the flow matrix on the paths where it is profitable to exercise
-            for path in exercise:
-                flows[time, path] = max(strike - spotGrid[time, path], 0)
-                flows[time + 1 :, path] = 0
-            
-        # now we have the matrix of cashFlows flows[,] so we can compute the NPV
-        discountedValue = np.zeros(flows.shape[1])
-        for path in range(paths_length):
-            discountedValue[path] = np.sum([np.exp(-rate*t)* flows[t, path] for t in range(flows.shape[0])])
+        discountedValue = np.exp(-rate*stopping_time) * stopping_payoff(np.arange(paths_length))
 
         return np.mean(discountedValue)

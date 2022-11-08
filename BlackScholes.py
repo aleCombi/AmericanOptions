@@ -40,7 +40,6 @@ def SimulateGBMPaths(T, S, r, sigma, sampleSize, timeSteps, antithetic=False):
             antithetic_logPathGrid[time + 1, :] = antithetic_logPathGrid[time, :] + driftTerm - volTerm[time, :]
         logPathGrid = np.block([logPathGrid,antithetic_logPathGrid])
 
-
     return S * np.exp(logPathGrid)
 
 def SimulateGBM(time, price, rate, sigma, sampleSize):

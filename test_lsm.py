@@ -31,16 +31,16 @@ def test_lsm():
 def test_lsm_full():
     rate = 0.06
     strike = 40
-    maturity = 1
+    maturity = 2
     spot = 36
     sigma = 0.2
     option = LSM.AmericanPut(strike, maturity)
     lsm = LSM.LongstaffSchwartz(None, option, 8)
     bs_opt = bs.Put(rate, sigma, maturity, strike, spot)
     sample_size = 100000
-    time_steps = 50
-    paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size//2, time_steps, True)
-    price = lsm.Price(paths, rate / (time_steps -1), strike)
+    time_steps = 51
+    paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size // 2, time_steps, True)
+    price = lsm.Price(paths, maturity * rate / (time_steps - 1), strike)
     print(price)
 
 test_lsm_full()
