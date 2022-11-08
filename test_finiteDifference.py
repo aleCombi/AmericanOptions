@@ -5,7 +5,7 @@ import numpy as np
 
 price_tolerance = 0.01
 
-def test_FiniteDifferenceBS_instance(sigma, rate, strike):
+def finiteDifferenceBS_instance(sigma, rate, strike):
     maturity = 1
     boundary = 2
     price_grid_size = 1000
@@ -23,6 +23,6 @@ def test_FiniteDifferenceBS():
 
     for vol in sigma:
         for strike in strikes:
-            test_FiniteDifferenceBS_instance(vol, rate, strike)
+            finiteDifferenceBS_instance(vol, rate, strike)
 
-# test_FiniteDifferenceBS()
+test_FiniteDifferenceBS()

@@ -8,7 +8,7 @@ class VanillaOption():
         self.maturity = maturity
 
     def payoff(self, log_price):
-        return np.maximum(np.exp(log_price) - self.strike, 0)
+        return np.maximum(self.strike - np.exp(log_price), 0)
 
 class FiniteDifferenceBS():
     def __init__(self, boundary, time_grid_size, price_grid_size):
@@ -55,6 +55,18 @@ class FiniteDifferenceBS():
 
         return u
 
+    def solve_with_final_condition(self, time_step, option, operator, final_condition, exercise_dates):
+        '''
+        time_grid_size -> time discretization grid size
+        time_step -> time discretization grid step
+        final_condition -> vector of option premium
+        operator -> differential operator discretized matrix
+        '''
+        mat = np.identity(operator.shape[0]) + time_step * operator
+        u = np.linalg.matrix_power(mat, self.time_grid_size // exercise_dates).dot(final_condition)
+
+        return u 
+
     def price(self, option, volatility, rate):
         k = option.maturity / self.time_grid_size
         a, b, c = self.fk_coefficients(volatility, rate)
@@ -65,20 +77,39 @@ class FiniteDifferenceBS():
     def log_price_discretized(self):
         return [- self.boundary + 2*n*self.boundary / self.price_grid_size for n in range(self.price_grid_size + 1)]
 
-def main():
-    sigma = 0.04
-    rate = 0.4
-    maturity = 1
-    strike = 1.5
-    boundary = 2
+    def price_bermudan(self, exercise_dates, volatility, rate, option):
+        k = option.maturity / self.time_grid_size
+        a, b, c = self.fk_coefficients(volatility, rate)
+        A = self.discretized_operator(a, b, c, self.h, self.price_grid_size + 1)
+        final_condition = option.payoff(self.log_price_discretized())
 
+        for time in range(exercise_dates):
+            continuation = self.solve_with_final_condition(k, option, A, final_condition, exercise_dates)
+            exercise = option.payoff(self.log_price_discretized())
+            u = np.maximum(continuation, exercise)
+            final_condition = u
+
+        return u[self.price_grid_size // 2]
+
+def main():
+    sigma = 0.2
+    rate = 0.06
+    maturity = 1
+    strike = 40/36
+    boundary = 2
+    spot = 36
     price_grid_size = 1000
     time_grid_size = 100000
-
-    priceBs = bs.Call(rate, sigma, maturity, strike, 1)
+    exercise_dates = 50
+    priceBs = bs.Put(rate, sigma, maturity, strike, 1)
     print(priceBs)
 
     fd = FiniteDifferenceBS(boundary, time_grid_size, price_grid_size)
     option = VanillaOption(strike, maturity)
-    price = fd.price(option, sigma, rate)
+    price = spot * fd.price(option, sigma, rate)
     print(price)
+    price = spot * fd.price_bermudan(exercise_dates, sigma, rate, option)
+
+    print(price)
+    
+main()
