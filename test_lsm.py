@@ -27,7 +27,7 @@ def test_lsm():
     assert np.abs(american_price - lsm_from_longstaff_paper) < .0001
 
 def test_lsm_full():
-    sample_size = 100000
+    sample_size = 10000
     time_steps = 51
     rate = 0.06
     results = pd.read_csv(result_path)
@@ -43,7 +43,6 @@ def test_lsm_full():
 def lsm_single(spot, sigma, strike, maturity, rate, sample_size, time_steps, result):
     option = po.VanillaPut(strike, maturity, spot)
     lsm = LSM.LongstaffSchwartz(4)
-    sample_size = 100000
     time_steps = 51
     paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size, time_steps, True)
     price = lsm.Price(paths, rate, option)

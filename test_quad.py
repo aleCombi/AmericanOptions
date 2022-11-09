@@ -12,7 +12,7 @@ def test_quad_full():
     results = pd.read_csv(result_path)
     strike = 40
     boundary = 2
-    step = 0.001
+    step = 0.01
     time_steps = 51
 
     quad_method = quad.Quad(boundary, step, time_steps)
