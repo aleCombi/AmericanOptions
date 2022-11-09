@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.stats as stats
 import Payoffs as po
+import CarrMadan as cm
+from scipy.stats import norm
 
 norm = stats.norm
 
@@ -48,6 +50,11 @@ class BlackScholes:
         self.r = r
         self.sigma = sigma
     
+    def Density(self, x, t):
+        mean = t * (self.r - self.sigma ** 2/2)
+        var = self.sigma * np.sqrt(t)
+        return norm.pdf(x, mean, var)
+
     def CharacteristicFunction(self, u, t):
         return np.exp(1j * (self.r - self.sigma**2 / 2) * u * t - u**2 * t * self.sigma ** 2 / 2)
 
@@ -68,19 +75,3 @@ class BlackScholes:
     def PutDelta(self, t, K, S):
         d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * t ) / (self.sigma * np.sqrt(t))
         return - norm.cdf(- d1)
-
-r = 0.06
-maturity = 1
-boundary = 32
-step = 0.01
-sigma = 0.5
-alpha = 1
-strike = 0.6
-spot = 1
-option = po.VanillaCall(strike, maturity, spot)
-model = BlackScholes(r, sigma)
-pricer = CarrMadan(boundary, alpha, step)
-priceCM = pricer.CallPrice(option, model)
-price = model.Call(maturity, strike, spot)
-print(price)
-print(priceCM)
