@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats as stats
+import Payoffs as po
 
 norm = stats.norm
 def Call(r, sigma, t, K, S):
@@ -57,3 +58,50 @@ def CompareMethods():
     mcCall = MontecarloCall(sampleSize, r, sigma, T, K, S)
     anCall = Call(r, sigma, T, K, S)
     return anCall, mcCall, (anCall - mcCall) / anCall
+
+class CarrMadan:
+    def __init__(self, boundary, alpha, step):
+        self.boundary = boundary
+        self.alpha = alpha
+        self.step = step
+    
+    def CallTransform(self, r, T, phi, v):
+        numerator = np.exp(- r * T) * phi(v - (self.alpha + 1) * 1j)
+        denominator = self.alpha ** 2 + self.alpha - v ** 2 + 1j * (2 * self.alpha + 1) * v
+        return numerator / denominator
+    
+    def CallPrice(self, option, model):
+        damp = np.exp(- self.alpha * np.log(option.strike)) / (2 * np.pi)
+        v = np.linspace(-self.boundary, self.boundary, int(self.boundary / self.step))
+        phi = lambda u: model.CharacteristicFunction(u, option.maturity)
+        integrand = self.CallTransform(model.r, option.maturity, phi, v) * np.exp(- 1j * v * np.log(option.strike))
+        integral = np.trapz(integrand, v)
+        return np.real(damp * integral)
+    
+class BlackScholes:
+    def __init__(self, r, sigma):
+        self.r = r
+        self.sigma = sigma
+    
+    def CharacteristicFunction(self, u, t):
+        return np.exp(1j * (self.r - self.sigma**2 / 2) * u * t - u**2 * t * self.sigma ** 2 / 2)
+
+
+r = 0.06
+maturity = 1
+boundary = 32
+step = 0.01
+sigma = 0.5
+alpha = 1
+strike = 0.6
+spot = 1
+option = po.VanillaCall(strike, maturity, spot)
+model = BlackScholes(r, sigma)
+pricer = CarrMadan(boundary, alpha, step)
+priceCM = pricer.CallPrice(option, model)
+
+
+logStrike = np.log(strike)
+price = Call(r, sigma, maturity, strike, spot)
+print(price)
+print(priceCM)
