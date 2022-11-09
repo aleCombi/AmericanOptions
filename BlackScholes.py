@@ -3,23 +3,6 @@ import scipy.stats as stats
 import Payoffs as po
 
 norm = stats.norm
-def Call(r, sigma, t, K, S):
-    d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * (t) ) / (sigma * np.sqrt(t))
-    d2 = d1 - sigma * np.sqrt(t)  
-    return norm.cdf(d1) * S - norm.cdf(d2) * K * np.exp(-r*t)
-
-def CallDelta(r, sigma, t, K, S):
-    d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * t ) / (sigma * np.sqrt(t))
-    return norm.cdf(d1)
-
-def Put(r, sigma, t, K, S):
-    d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * t ) / (sigma * np.sqrt(t))
-    d2 = d1 - sigma * np.sqrt(t)  
-    return  - norm.cdf(- d1) * S +  norm.cdf(- d2) * K * np.exp(- r * t)
-
-def PutDelta(r, sigma, t, K, S):
-    d1 = ( np.log(S/K) + (r + sigma ** 2 / 2) * t ) / (sigma * np.sqrt(t))
-    return - norm.cdf(- d1)
 
 def MontecarloCall(sampleSize, r, sigma, T, K, S):
     valuesAtMaturity = SimulateGBM(T, S, r, sigma, sampleSize)
@@ -56,27 +39,9 @@ def CompareMethods():
     r, sigma = 0.1, 0.05
     S, K, T = 100, 100, 1
     mcCall = MontecarloCall(sampleSize, r, sigma, T, K, S)
-    anCall = Call(r, sigma, T, K, S)
+    model = BlackScholes(r, sigma)
+    anCall = model.Call(T, K, S)
     return anCall, mcCall, (anCall - mcCall) / anCall
-
-class CarrMadan:
-    def __init__(self, boundary, alpha, step):
-        self.boundary = boundary
-        self.alpha = alpha
-        self.step = step
-    
-    def CallTransform(self, r, T, phi, v):
-        numerator = np.exp(- r * T) * phi(v - (self.alpha + 1) * 1j)
-        denominator = self.alpha ** 2 + self.alpha - v ** 2 + 1j * (2 * self.alpha + 1) * v
-        return numerator / denominator
-    
-    def CallPrice(self, option, model):
-        damp = np.exp(- self.alpha * np.log(option.strike)) / (2 * np.pi)
-        v = np.linspace(-self.boundary, self.boundary, int(self.boundary / self.step))
-        phi = lambda u: model.CharacteristicFunction(u, option.maturity)
-        integrand = self.CallTransform(model.r, option.maturity, phi, v) * np.exp(- 1j * v * np.log(option.strike))
-        integral = np.trapz(integrand, v)
-        return np.real(damp * integral)
     
 class BlackScholes:
     def __init__(self, r, sigma):
@@ -86,6 +51,23 @@ class BlackScholes:
     def CharacteristicFunction(self, u, t):
         return np.exp(1j * (self.r - self.sigma**2 / 2) * u * t - u**2 * t * self.sigma ** 2 / 2)
 
+    def Call(self, t, K, S):
+        d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * (t) ) / (self.sigma * np.sqrt(t))
+        d2 = d1 - self.sigma * np.sqrt(t)  
+        return norm.cdf(d1) * S - norm.cdf(d2) * K * np.exp(-self.r*t)
+
+    def CallDelta(self, t, K, S):
+        d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * t ) / (self.sigma * np.sqrt(t))
+        return norm.cdf(d1)
+
+    def Put(self, t, K, S):
+        d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * t ) / (self.sigma * np.sqrt(t))
+        d2 = d1 - self.sigma * np.sqrt(t)  
+        return  - norm.cdf(- d1) * S +  norm.cdf(- d2) * K * np.exp(- self.r * t)
+
+    def PutDelta(self, t, K, S):
+        d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * t ) / (self.sigma * np.sqrt(t))
+        return - norm.cdf(- d1)
 
 r = 0.06
 maturity = 1
@@ -99,9 +81,6 @@ option = po.VanillaCall(strike, maturity, spot)
 model = BlackScholes(r, sigma)
 pricer = CarrMadan(boundary, alpha, step)
 priceCM = pricer.CallPrice(option, model)
-
-
-logStrike = np.log(strike)
-price = Call(r, sigma, maturity, strike, spot)
+price = model.Call(maturity, strike, spot)
 print(price)
 print(priceCM)
