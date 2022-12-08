@@ -11,39 +11,10 @@ def MontecarloCall(sampleSize, r, sigma, T, K, S):
     payoffs = np.maximum(0, valuesAtMaturity - K) 
     return np.exp(- r * T) * np.average(payoffs)
 
-def SimulateGBMPaths(T, S, r, sigma, sample_size, timeSteps, antithetic=False):
-    if antithetic:
-        sample_size = sample_size // 2
-        
-    logPathGrid = np.zeros([timeSteps, sample_size])
-    dt = T / timeSteps
-    driftTerm = (r - sigma**2 / 2) * dt
-    volTerm = sigma * np.sqrt(dt) * np.random.normal(0,1, [timeSteps, sample_size])
-    
-    for time in range(timeSteps - 1):
-        logPathGrid[time + 1, :] = logPathGrid[time, :] + driftTerm + volTerm[time, :]
-
-    if (antithetic):
-        antithetic_logPathGrid = np.zeros([timeSteps, sample_size])
-        for time in range(timeSteps - 1):
-            antithetic_logPathGrid[time + 1, :] = antithetic_logPathGrid[time, :] + driftTerm - volTerm[time, :]
-        logPathGrid = np.block([logPathGrid,antithetic_logPathGrid])
-
-    return S * np.exp(logPathGrid)
-
 def SimulateGBM(time, price, rate, sigma, sampleSize):
     driftTerm = (rate - sigma**2 / 2) * time
     volTerm = sigma * np.sqrt(time) * np.random.normal(0,1,sampleSize)
     return price * np.exp(driftTerm + volTerm)
-
-def CompareMethods():
-    sampleSize, timeSteps = 10000000, 10**3
-    r, sigma = 0.1, 0.05
-    S, K, T = 100, 100, 1
-    mcCall = MontecarloCall(sampleSize, r, sigma, T, K, S)
-    model = BlackScholes(r, sigma)
-    anCall = model.Call(T, K, S)
-    return anCall, mcCall, (anCall - mcCall) / anCall
     
 class BlackScholes:
     def __init__(self, r, sigma):
@@ -75,3 +46,23 @@ class BlackScholes:
     def PutDelta(self, t, K, S):
         d1 = ( np.log(S/K) + (self.r + self.sigma ** 2 / 2) * t ) / (self.sigma * np.sqrt(t))
         return - norm.cdf(- d1)
+
+    def SimulatePaths(self, T, S, sample_size, timeSteps, antithetic=False):
+        if antithetic:
+            sample_size = sample_size // 2
+            
+        logPathGrid = np.zeros([timeSteps, sample_size])
+        dt = T / timeSteps
+        driftTerm = (self.r - self.sigma**2 / 2) * dt
+        volTerm = self.sigma * np.sqrt(dt) * np.random.normal(0,1, [timeSteps, sample_size])
+        
+        for time in range(timeSteps - 1):
+            logPathGrid[time + 1, :] = logPathGrid[time, :] + driftTerm + volTerm[time, :]
+
+        if (antithetic):
+            antithetic_logPathGrid = np.zeros([timeSteps, sample_size])
+            for time in range(timeSteps - 1):
+                antithetic_logPathGrid[time + 1, :] = antithetic_logPathGrid[time, :] + driftTerm - volTerm[time, :]
+            logPathGrid = np.block([logPathGrid,antithetic_logPathGrid])
+
+        return S * np.exp(logPathGrid)

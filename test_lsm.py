@@ -43,7 +43,8 @@ def test_lsm_full():
 def lsm_single(spot, sigma, strike, maturity, rate, sample_size, time_steps, result):
     option = po.VanillaPut(strike, maturity, spot)
     lsm = LSM.LongstaffSchwartz(4)
+    model = bs.BlackScholes(rate, sigma)
     time_steps = 51
-    paths = bs.SimulateGBMPaths(maturity, spot, rate, sigma, sample_size, time_steps, True)
+    paths = model.SimulatePaths(maturity, spot, sample_size, time_steps, True)
     price = lsm.Price(paths, rate, option)
     assert np.abs(price - result) / result < 0.04

@@ -8,7 +8,7 @@ class LongstaffSchwartz:
         self.poly_fit_degree = poly_fit_degree
 
     def Poly_fit(self, x, y):
-        coeff =  polynomial.Polynomial.fit(x, y, self.poly_fit_degree).convert().coef[::-1]
+        coeff = polynomial.Polynomial.fit(x, y, self.poly_fit_degree).convert().coef[::-1]
         return np.poly1d(coeff)
 
     def Price(self, spotGrid, year_rate, option):
