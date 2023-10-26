@@ -1,9 +1,4 @@
-import Payoffs as po
-import BlackScholes as bs
 import numpy as np
-import matplotlib.pyplot as plt
-import LSM 
-import FiniteDifference as fd
 
 class Quad:
     def __init__(self, boundary, step, exercise_dates):
