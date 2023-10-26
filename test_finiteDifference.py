@@ -50,5 +50,3 @@ def fd_single_bermudan(spot, sigma, strike, maturity, rate, price_grid_size, tim
     option = po.VanillaPut(strike, maturity, spot)
     price = fd.price_bermudan(exercise_dates, sigma, rate, option)
     assert np.abs(price - result) / result < 0.01
-
-test_FiniteDifferenceBS()
