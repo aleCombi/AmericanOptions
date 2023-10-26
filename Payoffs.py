@@ -22,3 +22,6 @@ class VanillaCall:
 
     def payoff(self, price):
         return np.maximum(price - self.strike, 0)
+    
+    def unitary_payoff(self, price):
+        return np.maximum(price - self.strike / self.spot, 0)

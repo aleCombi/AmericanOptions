@@ -4,6 +4,7 @@ import Payoffs as po
 import CarrMadan as cm
 from scipy.stats import norm
 from TermStructure import TermStructure
+import Payoffs
 
 class CoxRossRubinsteinAmerican:
     def __init__(self, num_steps, down_step, up_step, r):
@@ -12,12 +13,62 @@ class CoxRossRubinsteinAmerican:
         self.up_step = up_step
         self.r = r
 
-    def PriceBermudan(self, option, bs_model):
-        steps = np.arange(self.num_steps)
-        strike = option.strike
+    def SpotValuesAtDate(self, u, d, i):
+        return d**np.arange(i+1) * u**np.arange(i, -1, -1)
+
+    def SpotValues(self, u, d):
+        S = []
+        for i in range(self.num_steps + 1):
+            Si = self.SpotValuesAtDate(u, d, i)
+            S.append(Si)
+        
+        return S
+
+    # E[i] = value at i of excercising at i + 1 => length i+1
+    def ExerciseValues(self, S, p, u, d, k, r):
+        E = []
+        for i in range(len(S) - 1):
+            Ei = (p * self.PayOff(S[i] * d, k) + (1 - p) * self.PayOff(S[i] * u, k)) / (1 + r)
+            E.append(Ei)
+        
+        return E
+
+    def SpotDistribution(p, i):
+        return p**np.arange(i+1) * (1 - p)**np.arange(i, -1, -1)
+
+    def PayOff(self, x, k):
+        return np.maximum(k - x, 0)
+
+    def PriceBermudan(self, option):
+        k = option.strike
         spot = option.spot
         u = self.up_step
         d = self.down_step
         r = self.r
         p = (u - 1 - r) / (u - d)
-        price_at_maturity = np.maximum(strike - spot * )
+        N = self.num_steps
+        S = self.SpotValues(u, d)
+        E = self.ExerciseValues(S, p, u, d, k, r)
+
+        A = []
+        for i in range(N):
+            A.append(np.zeros(i+1))
+
+        A[-1] = E[-1]
+        for i in np.arange(N - 2, -1, -1):
+            Ci = (p * A[i+1][1:] + (1 - p) * A[i+1][:-1]) / (1 + r)
+            Ai = np.maximum(E[i], Ci)
+            A[i] = Ai
+
+        return spot * A[0][0]
+    
+# sigma = 0.4
+# r = 0.4
+# num_steps = 230
+# strike, maturity, spot = 1,1,1
+# down_step = np.exp(- sigma*np.sqrt(num_steps / maturity)) * (1 + r)
+# up_step = np.exp(sigma*np.sqrt(num_steps / maturity)) * (1 + r)
+
+# cox = CoxRossRubinsteinAmerican(num_steps, down_step, up_step, r)
+# option = Payoffs.VanillaPut(strike, maturity, spot)
+# print(cox.PriceBermudan(option))
