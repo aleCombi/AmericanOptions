@@ -25,10 +25,10 @@ class CoxRossRubinsteinAmerican:
         return S
 
     # E[i] = value at i of excercising at i + 1 => length i+1
-    def ExerciseValues(self, S, p, u, d, k, r):
+    def ExerciseValues(self, S, option):
         E = []
-        for i in range(len(S) - 1):
-            Ei = (p * self.PayOff(S[i] * d, k) + (1 - p) * self.PayOff(S[i] * u, k)) / (1 + r)
+        for i in range(len(S)):
+            Ei = option.unitary_payoff(S[i])         
             E.append(Ei)
         
         return E
@@ -40,7 +40,7 @@ class CoxRossRubinsteinAmerican:
         return np.maximum(k - x, 0)
 
     def PriceBermudan(self, option):
-        k = option.strike
+        k = option.strike / option.spot
         spot = option.spot
         u = self.up_step
         d = self.down_step
@@ -48,14 +48,14 @@ class CoxRossRubinsteinAmerican:
         p = (u - 1 - r) / (u - d)
         N = self.num_steps
         S = self.SpotValues(u, d)
-        E = self.ExerciseValues(S, p, u, d, k, r)
+        E = self.ExerciseValues(S, option)
 
         A = []
-        for i in range(N):
+        for i in range(N+1):
             A.append(np.zeros(i+1))
 
         A[-1] = E[-1]
-        for i in np.arange(N - 2, -1, -1):
+        for i in np.arange(N - 1, -1, -1):
             Ci = (p * A[i+1][1:] + (1 - p) * A[i+1][:-1]) / (1 + r)
             Ai = np.maximum(E[i], Ci)
             A[i] = Ai
